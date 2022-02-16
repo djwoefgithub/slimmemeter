@@ -1,8 +1,8 @@
 #
 # DSMR P1 uitlezer
-# (c) 11-2017 2016 - GJ - gratis te kopieren en te plakken
+# (c) 02-2022 2016 - GJ - gratis te kopieren en te plakken
 
-versie = "1.2"
+versie = "2.0 python3"
 import sys
 import serial
 
@@ -58,51 +58,68 @@ while p1_teller < 26:
     p1_line=p1_str.strip()
     stack.append(p1_line)
 # als je alles wil zien moet je de volgende line uncommenten
-#    print (p1_line)
+    #print (p1_line)
     p1_teller = p1_teller +1
 
 #Initialize
 # stack_teller is mijn tellertje voor de 26 weer door te lopen. Waarschijnlijk mag ik die p1_teller ook gebruiken
 stack_teller=0
 meter=0
+fieldcounter = 0
 
 while stack_teller < 26:
-   if stack[stack_teller][0:9] == "1-0:1.8.1":
-	print "daldag      ", stack[stack_teller][10:16]
-	meter = meter +  int(float(stack[stack_teller][10:16]))
-   elif stack[stack_teller][0:9] == "1-0:1.8.2":
-	print "piekdag     ", stack[stack_teller][10:16]
-	meter = meter + int(float(stack[stack_teller][10:16]))
-#	print "meter totaal   ", meter
+   # this is the part of the string where the proper label is indicated
+   labelfield=stack[stack_teller][2:11]
+   # this is the part which contains de value in Kwh
+   valuefield=stack[stack_teller][12:18]
+   if labelfield == "1-0:1.8.1":
+   # looks like this b'1-0:1.8.1(011215.804*kWh)\r\n'
+     print("daldag      ", valuefield)
+     meter = meter +  int(float(valuefield))
+     fieldcounter +=1
+   elif labelfield == "1-0:1.8.2":
+     print("piekdag     ", valuefield)
+     meter = meter + int(float(valuefield))
+     fieldcounter +=1
+#    print "meter totaal   ", meter
 # Daltarief, teruggeleverd vermogen 1-0:2.8.1
-   elif stack[stack_teller][0:9] == "1-0:2.8.1":
-	print "dalterug    ", stack[stack_teller][10:16]
-	meter = meter - int(float(stack[stack_teller][10:16]))
-#	print "meter totaal   ", meter
+   elif labelfield == "1-0:2.8.1":
+     print("dalterug    ", valuefield)
+     meter = meter - int(float(valuefield))
+     print("meter totaal   ", meter)
+     fieldcounter +=1
 # Piek tarief, teruggeleverd vermogen 1-0:2.8.2
-   elif stack[stack_teller][0:9] == "1-0:2.8.2":
-        print "piekterug   ", stack[stack_teller][10:16]
-        meter = meter - int(float(stack[stack_teller][10:16]))
+   elif labelfield == "1-0:2.8.2":
+     print("piekterug   ", valuefield)
+     meter = meter - int(float(valuefield))
+     fieldcounter +=1
 # mijn verbruik was op 17-10-2014 1751 kWh teveel teruggeleverd. Nieuw jaar dus opnieuw gaan rekenen
 # volgende rij dus uncommenten om een berekening van vorige jaren eraf te tellen.
-#	meter = meter + 1751
+# meter = meter + 1751
 # Nieuwe EMSR 5.0 meter per 01-11-2017, dus opnieuw beginnen met tellen.
-        print "meter totaal  ", meter, " (afgenomen/teruggeleverd van het net vanaf 01-11-2017)"
+     print("meter totaal  ", meter, " (afgenomen/teruggeleverd van het net vanaf 01-11-2017)")
 # Huidige stroomafname: 1-0:1.7.0
-   elif stack[stack_teller][0:9] == "1-0:1.7.0":
-        print "Afgenomen vermogen      ", int(float(stack[stack_teller][10:16])*1000), " W"
+   elif labelfield == "1-0:1.7.0":
+     print("Afgenomen vermogen      ", int(float(valuefield)*1000), " W")
+     fieldcounter +=1
 # Huidig teruggeleverd vermogen: 1-0:1.7.0
-   elif stack[stack_teller][0:9] == "1-0:2.7.0":
-        print "Teruggeleverd vermogen  ", int(float(stack[stack_teller][10:16])*1000), " W"
+   elif labelfield == "1-0:2.7.0":
+     print("Teruggeleverd vermogen  ", int(float(valuefield)*1000), " W")
+     fieldcounter +=1
 # Gasmeter: 0-1:24.2.1
-   elif stack[stack_teller][0:10] == "0-1:24.2.1":
+#  elif stack[stack_teller][0:10] == "0-1:24.2.1":
+
+# Gasmeter: 0-1:24.2.1
+#  elif stack[stack_teller][0:10] == "0-1:24.2.1":
 
 # Helaas, 26-09-2016, ik krijg het gas niet aan de gang.
-        print "Gas                     ", int(float(stack[stack_teller][26:35])*1000), " dm3"
+#        print("Gas                     ", int(float(stack[stack_teller][26:35])*1000), " dm3")
+
    else:
-	pass
+      pass
    stack_teller = stack_teller +1
 
+print("Total nr of fields is {0}. This should be 6 so something went wrong".format(fieldcounter))
 #Debug
 #print (stack, "\n")
     
